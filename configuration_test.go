@@ -1,7 +1,6 @@
 package ebdeploy
 
 import (
-	"encoding/json"
 	"testing"
 )
 
@@ -35,7 +34,7 @@ var configJson = []byte(`{
 			"Name" : "OutputOne",
 			"Namespace" : "d:e:f",
 			"OptionName" : "blerg"
-		}]
+		}] 
 	},
 	"Environments" : [{
 		"Name" : "Dev",
@@ -65,22 +64,18 @@ var configJson = []byte(`{
 	}]
 }`)
 
-func TestUnmarshall(t *testing.T) {
-	var config Configuration
-
-	err := json.Unmarshal(configJson, &config)
+func TestHasEnvironment(t *testing.T) {
+	config, err := FromJson(configJson)
 
 	if err != nil {
-		t.Errorf("Failed to unmarshall configuration json %s", err)
+		t.Errorf("Failed to parse config json %s", err)
 	}
-}
-
-func TestHasEnvironment(t *testing.T) {
-	var config Configuration
-
-	json.Unmarshal(configJson, &config)
 
 	if !config.HasEnvironment("Dev") {
 		t.Errorf("Failed to find known environment in config")
+	}
+
+	if config.HasEnvironment("Blah") {
+		t.Errorf("HasEnvironment returned true for non-existent environment")
 	}
 }

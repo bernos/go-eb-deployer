@@ -1,5 +1,9 @@
 package ebdeploy
 
+import (
+	"encoding/json"
+)
+
 type Tag struct {
 	Key, Value string
 }
@@ -47,4 +51,12 @@ func (c *Configuration) HasEnvironment(name string) bool {
 		}
 	}
 	return false
+}
+
+func FromJson(b []byte) (Configuration, error) {
+	var config Configuration
+
+	err := json.Unmarshal(b, &config)
+
+	return config, err
 }
