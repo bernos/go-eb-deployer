@@ -42,6 +42,10 @@ var configJson = []byte(`{
 		"Tags" : [{
 			"Key" : "One",
 			"Value" : "Value for dev env"
+		},
+		{
+			"Key" : "Tag Two",
+			"Value" : "Value from dev"
 		}],
 		"OptionSettings" : [{
 			"Namespace" : "a:b:c",
@@ -64,12 +68,18 @@ var configJson = []byte(`{
 	}]
 }`)
 
-func TestHasEnvironment(t *testing.T) {
-	config, err := FromJson(configJson)
+func loadConfig(t *testing.T) Configuration {
+	config, err := LoadConfigFromJson(configJson)
 
 	if err != nil {
 		t.Errorf("Failed to parse config json %s", err)
 	}
+
+	return config
+}
+
+func TestHasEnvironment(t *testing.T) {
+	config := loadConfig(t)
 
 	if !config.HasEnvironment("Dev") {
 		t.Errorf("Failed to find known environment in config")
@@ -77,5 +87,42 @@ func TestHasEnvironment(t *testing.T) {
 
 	if config.HasEnvironment("Blah") {
 		t.Errorf("HasEnvironment returned true for non-existent environment")
+	}
+}
+
+func TestNormalizeEnvironmentTags(t *testing.T) {
+	config := loadConfig(t)
+
+	if env, err := config.GetEnvironment("Dev"); err != nil {
+		t.Errorf("%s", err)
+	} else {
+		tags := config.normalizeEnvironmentTags(env.Tags)
+
+		if len(tags) != 3 {
+			t.Errorf("Expected %d tags, but found %d", 3, len(tags))
+		}
+	}
+}
+
+func TestNormalizeEnvironment(t *testing.T) {
+	config := loadConfig(t)
+
+	env, _ := config.GetEnvironment("Dev")
+	config.normalizeEnvironment(env)
+
+	if len(env.Tags) != 3 {
+		t.Errorf("Expected %d tags, but found %d", 3, len(env.Tags))
+	}
+}
+
+func TestNormalizeEnvironments(t *testing.T) {
+	config := loadConfig(t)
+
+	config.normalizeEnvironments()
+
+	env, _ := config.GetEnvironment("Dev")
+
+	if len(env.Tags) != 3 {
+		t.Errorf("Expected %d tags, but found %d", 3, len(env.Tags))
 	}
 }
