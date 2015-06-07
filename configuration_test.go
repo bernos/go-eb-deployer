@@ -19,8 +19,13 @@ var configJson = []byte(`{
 	}],
 	"OptionSettings" : [{
 		"Namespace" : "a:b:c",
-		"OptionName" : "optionone",
+		"OptionName" : "OptionOne",
 		"Value" : "valueone"
+	},
+	{
+		"Namespace" : "e:y:w",
+		"OptionName" : "optiontwo",
+		"Value" : "foo"
 	}],
 	"Tier" : {
 		"Name" : "Web",
@@ -51,6 +56,11 @@ var configJson = []byte(`{
 			"Namespace" : "a:b:c",
 			"OptionName": "OptionOne",
 			"Value":"value for dev env"
+		},
+		{
+			"Namespace" : "d:e:f",
+			"OptionName" : "OptionOne",
+			"Value":"value"
 		}]
 	},
 	{
@@ -90,39 +100,142 @@ func TestHasEnvironment(t *testing.T) {
 	}
 }
 
-func TestNormalizeEnvironmentTags(t *testing.T) {
+func TestNormalize(t *testing.T) {
 	config := loadConfig(t)
 
-	if env, err := config.GetEnvironment("Dev"); err != nil {
-		t.Errorf("%s", err)
-	} else {
-		tags := config.normalizeEnvironmentTags(env.Tags)
+	env, _ := config.GetEnvironment("Dev")
 
-		if len(tags) != 3 {
-			t.Errorf("Expected %d tags, but found %d", 3, len(tags))
+	if len(env.Tags) != 3 {
+		t.Errorf("Expected %d tags, but found %d", 3, len(env.Tags))
+	}
+
+	if len(env.OptionSettings) != 3 {
+		t.Errorf("Expected %d option settings, but found %d", 3, len(env.OptionSettings))
+	}
+
+	if tag := env.Tags.GetTag("Tag Two"); tag != nil {
+		expected := "Value from dev"
+		actual := tag.Value
+		if actual != expected {
+			t.Errorf("Expected tag value %s but found %s", expected, actual)
 		}
+	} else {
+		t.Errorf("Failed to get tag")
+	}
+
+	if os := env.OptionSettings.GetOptionSetting("a:b:c", "OptionOne"); os != nil {
+		expected := "value for dev env"
+		actual := os.Value
+		if actual != expected {
+			t.Errorf("Expected option setting value %s, but found %s", expected, actual)
+		}
+	} else {
+		t.Errorf("Failed to find option setting")
 	}
 }
 
-func TestNormalizeEnvironment(t *testing.T) {
-	config := loadConfig(t)
+func TestNormalizeWithNoEnvironmentTags(t *testing.T) {
+	cfg := []byte(`{
+		"ApplicationName" : "My application",
+		"SolutionStackName" : "My solution stack",
+		"Region" : "ap-southeast-2",
+		"Bucket" : "my-bucket",
+		"Tags" : [{
+			"Key" : "Tag one",
+			"Value" : "Value one"
+		},
+		{
+			"Key" : "Tag Two",
+			"Value" : "Value two"
+		}],
+		"OptionSettings" : [{
+			"Namespace" : "a:b:c",
+			"OptionName" : "optionone",
+			"Value" : "valueone"
+		}],
+		"Tier" : {
+			"Name" : "Web",
+			"Type" : "WebType",
+			"Version" : "1"
+		},
+		"Resources" : {
+			"TemplateFile" : "my-resources.json",
+			"Capabilities" : ["BLAH"],
+			"Outputs" : [{
+				"Name" : "OutputOne",
+				"Namespace" : "d:e:f",
+				"OptionName" : "blerg"
+			}] 
+		},
+		"Environments" : [{
+			"Name" : "Dev",
+			"Description" : "Dev environment"
+		}]
+	}`)
 
-	env, _ := config.GetEnvironment("Dev")
-	config.normalizeEnvironment(env)
+	config, err := LoadConfigFromJson(cfg)
 
-	if len(env.Tags) != 3 {
-		t.Errorf("Expected %d tags, but found %d", 3, len(env.Tags))
+	if err != nil {
+		t.Errorf("Failed to load from json %s", err)
+	}
+
+	if env, err := config.GetEnvironment("Dev"); err == nil {
+		expected := 2
+		actual := len(env.Tags)
+
+		if expected != actual {
+			t.Errorf("Expected %d tags but found %d", expected, actual)
+		}
+	} else {
+		t.Errorf("Failed to get environment %s", err)
 	}
 }
 
-func TestNormalizeEnvironments(t *testing.T) {
-	config := loadConfig(t)
+func TestNormalizeWithNoConfigTags(t *testing.T) {
+	cfg := []byte(`{
+		"ApplicationName" : "My application",
+		"SolutionStackName" : "My solution stack",
+		"Region" : "ap-southeast-2",
+		"Bucket" : "my-bucket",
+		"OptionSettings" : [{
+			"Namespace" : "a:b:c",
+			"OptionName" : "optionone",
+			"Value" : "valueone"
+		}],
+		"Tier" : {
+			"Name" : "Web",
+			"Type" : "WebType",
+			"Version" : "1"
+		},
+		"Resources" : {
+			"TemplateFile" : "my-resources.json",
+			"Capabilities" : ["BLAH"],
+			"Outputs" : [{
+				"Name" : "OutputOne",
+				"Namespace" : "d:e:f",
+				"OptionName" : "blerg"
+			}] 
+		},
+		"Environments" : [{
+			"Name" : "Dev",
+			"Description" : "Dev environment"
+		}]
+	}`)
 
-	config.normalizeEnvironments()
+	config, err := LoadConfigFromJson(cfg)
 
-	env, _ := config.GetEnvironment("Dev")
+	if err != nil {
+		t.Errorf("Failed to load from json %s", err)
+	}
 
-	if len(env.Tags) != 3 {
-		t.Errorf("Expected %d tags, but found %d", 3, len(env.Tags))
+	if env, err := config.GetEnvironment("Dev"); err == nil {
+		expected := 0
+		actual := len(env.Tags)
+
+		if expected != actual {
+			t.Errorf("Expected %d tags but found %d", expected, actual)
+		}
+	} else {
+		t.Errorf("Failed to get environment %s", err)
 	}
 }

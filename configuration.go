@@ -21,6 +21,15 @@ func (ts Tags) Contains(tag Tag) bool {
 	return false
 }
 
+func (ts Tags) GetTag(key string) *Tag {
+	for i, t := range ts {
+		if t.Key == key {
+			return &ts[i]
+		}
+	}
+	return nil
+}
+
 type OptionSetting struct {
 	Namespace, OptionName, Value string
 }
@@ -29,11 +38,20 @@ type OptionSettings []OptionSetting
 
 func (os OptionSettings) Contains(optionSetting OptionSetting) bool {
 	for _, o := range os {
-		if o.Namespace == optionSetting.namespace && o.OptionName == optionSetting.optionName {
+		if o.Namespace == optionSetting.Namespace && o.OptionName == optionSetting.OptionName {
 			return true
 		}
 	}
 	return false
+}
+
+func (os OptionSettings) GetOptionSetting(namespace string, optionName string) *OptionSetting {
+	for i, o := range os {
+		if o.Namespace == namespace && o.OptionName == optionName {
+			return &os[i]
+		}
+	}
+	return nil
 }
 
 type Tier struct {
@@ -52,8 +70,24 @@ type Resources struct {
 
 type Environment struct {
 	Name, Description string
-	Tags              []Tag
-	OptionSettings    []OptionSetting
+	Tags              Tags
+	OptionSettings    OptionSettings
+}
+
+func (e *Environment) MergeCommonTags(tags Tags) {
+	for _, t := range tags {
+		if !e.Tags.Contains(t) {
+			e.Tags = append(e.Tags, t)
+		}
+	}
+}
+
+func (e *Environment) MergeCommonOptionSettings(optionSettings OptionSettings) {
+	for _, os := range optionSettings {
+		if !e.OptionSettings.Contains(os) {
+			e.OptionSettings = append(e.OptionSettings, os)
+		}
+	}
 }
 
 type Environments []Environment
@@ -100,16 +134,8 @@ func (c *Configuration) normalizeEnvironments() {
 }
 
 func (c *Configuration) normalizeEnvironment(environment *Environment) {
-	environment.Tags = c.normalizeEnvironmentTags(environment.Tags)
-}
-
-func (c *Configuration) normalizeEnvironmentTags(environmentTags Tags) Tags {
-	for _, t := range c.Tags {
-		if !environmentTags.Contains(t) {
-			environmentTags = append(environmentTags, t)
-		}
-	}
-	return environmentTags
+	environment.MergeCommonTags(c.Tags)
+	environment.MergeCommonOptionSettings(c.OptionSettings)
 }
 
 func LoadConfigFromJson(b []byte) (Configuration, error) {
