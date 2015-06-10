@@ -12,6 +12,9 @@ var (
 
 type DeploymentContext struct {
 	Configuration *Configuration
+	Environment   string
+	SourceBundle  string
+	Version       string
 }
 
 func (d *DeploymentContext) Bucket() (string, error) {
@@ -34,8 +37,26 @@ func calculateBucketName(s string) string {
 	return strings.ToLower(whiteSpaceToHyphenRegexp.ReplaceAllString(s, "-") + "-packages")
 }
 
-func NewDeploymentContext(c *Configuration) *DeploymentContext {
-	d := new(DeploymentContext)
-	d.Configuration = c
-	return d
+func NewDeploymentContext(configuration *Configuration, environment string, sourceBundle string, version string) (*DeploymentContext, error) {
+
+	if !configuration.HasEnvironment(environment) {
+		return nil, errors.New("Invalid environment " + environment)
+	}
+
+	if len(version) == 0 {
+		return nil, errors.New("Invalid version number")
+	}
+
+	if len(sourceBundle) == 0 {
+		return nil, errors.New("Invalid version number")
+	}
+
+	d := &DeploymentContext{
+		Configuration: configuration,
+		Environment:   environment,
+		SourceBundle:  sourceBundle,
+		Version:       version,
+	}
+
+	return d, nil
 }
