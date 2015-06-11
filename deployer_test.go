@@ -1,11 +1,16 @@
 package ebdeploy
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"testing"
 )
 
-func TestBucketExists(t *testing.T) {
-	exists, err := bucketExists("my-application-packages", "ap-southeast-2")
+func IgnoreTestBucketExists(t *testing.T) {
+
+	svc := s3.New(&aws.Config{Region: "ap-southeast-2"})
+
+	exists, err := bucketExists(svc, "my-application-packages")
 
 	if err != nil {
 		t.Errorf("Test failed %s", err)

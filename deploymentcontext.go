@@ -39,6 +39,10 @@ func calculateBucketName(s string) string {
 
 func NewDeploymentContext(configuration *Configuration, environment string, sourceBundle string, version string) (*DeploymentContext, error) {
 
+	if configuration == nil {
+		return nil, errors.New("Configuration is required")
+	}
+
 	if !configuration.HasEnvironment(environment) {
 		return nil, errors.New("Invalid environment " + environment)
 	}
