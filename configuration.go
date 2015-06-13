@@ -95,6 +95,7 @@ type Environments []Environment
 type Configuration struct {
 	ApplicationName   string
 	SolutionStackName string
+	Strategy          string
 	Region            string
 	Bucket            string
 	Tags              Tags
