@@ -3,7 +3,7 @@ package ebdeploy
 import (
 	"encoding/json"
 	"fmt"
-	//	"log"
+	"io/ioutil"
 )
 
 type Tag struct {
@@ -139,14 +139,22 @@ func (c *Configuration) normalizeEnvironment(environment *Environment) {
 	environment.MergeCommonOptionSettings(c.OptionSettings)
 }
 
-func LoadConfigFromJson(b []byte) (Configuration, error) {
-	var config Configuration
+func LoadConfigFromJson(b []byte) (*Configuration, error) {
+	config := new(Configuration)
 
-	if err := json.Unmarshal(b, &config); err != nil {
-		return config, err
+	if err := json.Unmarshal(b, config); err != nil {
+		return nil, err
 	}
 
 	config.normalize()
 
 	return config, nil
+}
+
+func LoadConfigFromFile(file string) (*Configuration, error) {
+	if bytes, err := ioutil.ReadFile(file); err == nil {
+		return LoadConfigFromJson(bytes)
+	} else {
+		return nil, err
+	}
 }
