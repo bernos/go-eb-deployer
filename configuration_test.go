@@ -78,7 +78,7 @@ var configJson = []byte(`{
 	}]
 }`)
 
-func loadConfig(t *testing.T) Configuration {
+func loadConfig(t *testing.T) *Configuration {
 	config, err := LoadConfigFromJson(configJson)
 
 	if err != nil {
