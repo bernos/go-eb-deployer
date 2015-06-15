@@ -23,15 +23,14 @@ func main() {
 			fmt.Println("SourceBundle:", context.SourceBundle)
 
 			if pipeline, err := ebdeploy.GetPipeline(config.Strategy); err == nil {
-				pipelineErr := pipeline.Run(context)
-
-				if pipelineErr == nil {
+				if err := pipeline.Run(context); err == nil {
 					fmt.Println("Done")
 				} else {
-					panic(pipelineErr)
+					panic(err)
 				}
+			} else {
+				panic(err)
 			}
-
 		} else {
 			panic(err)
 		}
