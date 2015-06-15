@@ -15,7 +15,7 @@ type DeploymentPipeline struct {
 
 func GetPipeline(strategy string) (*DeploymentPipeline, error) {
 	switch {
-	case strings.ToLower(strategy) == "bluegreen":
+	case strings.ToLower(strategy) == "blue-green":
 		return NewBlueGreenStrategy(), nil
 	}
 	return nil, errors.New("Unknown deployment strategy " + strategy)
