@@ -2,7 +2,6 @@
 	"ApplicationName" : "My application",
 	"SolutionStackName" : "My solution stack",
 	"Region" : "ap-southeast-2",
-	"Bucket" : "my-bucket",
 	"Strategy" : "blue-green",
 	"Tags" : [{
 		"Key" : "Tag one",
