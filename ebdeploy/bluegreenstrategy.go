@@ -3,7 +3,9 @@ package ebdeploy
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
+	"os"
 )
 
 func NewBlueGreenStrategy() *DeploymentPipeline {
@@ -43,7 +45,29 @@ func ensureBucketExists(ctx *DeploymentContext, next Continue) error {
 
 func uploadVersion(ctx *DeploymentContext, next Continue) error {
 	log.Printf("Upload version")
-	return next()
+	svc := s3.New(&aws.Config{Region: ctx.Configuration.Region})
+	uploader := s3manager.NewUploader(&s3manager.UploadOptions{S3: svc})
+	key := ctx.Version + ".zip"
+	if reader, err := os.Open(ctx.SourceBundle); err == nil {
+		if bucket, err := ctx.Bucket(); err == nil {
+			input := &s3manager.UploadInput{
+				Bucket: &bucket,
+				Body:   reader,
+				Key:    &key,
+			}
+
+			if _, err := uploader.Upload(input); err != nil {
+				return err
+			} else {
+				log.Printf("Uploaded version %s", ctx.Version)
+				return next()
+			}
+		} else {
+			return err
+		}
+	} else {
+		return err
+	}
 }
 
 func bucketExists(svc *s3.S3, bucket string) (bool, error) {
@@ -63,15 +87,3 @@ func createBucket(svc *s3.S3, bucket string) error {
 	_, err := svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucket})
 	return err
 }
-
-/*
-func ensureBucketExists(svc *s3.S3, bucket string) error {
-	if exists, err := bucketExists(svc, bucket); err == nil {
-		if !exists {
-			return createBucket(svc, bucket)
-		}
-		return nil
-	} else {
-		return err
-	}
-}*/
