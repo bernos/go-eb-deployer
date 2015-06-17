@@ -52,7 +52,7 @@ func NewDeploymentContext(configuration *Configuration, environment string, sour
 	}
 
 	if len(sourceBundle) == 0 {
-		return nil, errors.New("Invalid version number")
+		return nil, errors.New("Invalid source bundle")
 	}
 
 	d := &DeploymentContext{

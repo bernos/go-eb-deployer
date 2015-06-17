@@ -2,39 +2,26 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/bernos/go-eb-deployer/ebdeploy"
 )
 
-func main() {
-	// environment, sourcebundle, version
-	version := flag.String("version", "", "Version number")
-	environment := flag.String("environment", "", "Environment to deploy to")
-	sourceBundle := flag.String("package", "", "Package to deploy")
-	configFile := flag.String("config", "", "Deployment config file")
+func ReadOptions() ebdeploy.Options {
+	options := ebdeploy.Options{}
+
+	flag.StringVar(&options.Version, "version", "", "Version number")
+	flag.StringVar(&options.Environment, "environment", "", "Environment to deploy to")
+	flag.StringVar(&options.Package, "package", "", "Package to deploy")
+	flag.StringVar(&options.Config, "config", "", "Deployment config file")
 
 	flag.Parse()
 
-	if config, err := ebdeploy.LoadConfigFromFile(*configFile); err == nil {
-		if context, err := ebdeploy.NewDeploymentContext(config, *environment, *sourceBundle, *version); err == nil {
+	return options
+}
 
-			fmt.Println("Version:", context.Version)
-			fmt.Println("Environment:", context.Environment)
-			fmt.Println("SourceBundle:", context.SourceBundle)
+func main() {
+	options := ReadOptions()
 
-			if pipeline, err := ebdeploy.GetPipeline(config.Strategy); err == nil {
-				if err := pipeline.Run(context); err == nil {
-					fmt.Println("Done")
-				} else {
-					panic(err)
-				}
-			} else {
-				panic(err)
-			}
-		} else {
-			panic(err)
-		}
-	} else {
+	if err := ebdeploy.Deploy(options); err != nil {
 		panic(err)
 	}
 }

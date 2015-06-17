@@ -1,19 +1,35 @@
 package ebdeploy
 
 import (
-//"github.com/aws/aws-sdk-go/aws"
-//"github.com/aws/aws-sdk-go/service/s3"
-//	"log"
+	"log"
 )
 
-func Deploy(ctx *DeploymentContext) {
-	//	ensureBucketExists(ctx.Bucket())
+func Deploy(options Options) error {
 
-	//svc := s3.New(&aws.Config{Region: ctx.Configuration.Region})
+	var (
+		config   *Configuration
+		context  *DeploymentContext
+		pipeline *DeploymentPipeline
+		err      error
+	)
 
-	//if bucket, err := ctx.Bucket(); err == nil {
-	//	if ensureBucketExists(svc, bucket) == nil {
+	if config, err = LoadConfigFromFile(options.Config); err != nil {
+		return err
+	}
 
-	//	}
-	//}
+	if context, err = NewDeploymentContext(config, options.Environment, options.Package, options.Version); err != nil {
+		return err
+	}
+
+	if pipeline, err = GetPipeline(config.Strategy); err != nil {
+		return err
+	}
+
+	log.Printf("Deploying version %s from package %s to environment %s", context.Version, context.SourceBundle, context.Environment)
+
+	if err = pipeline.Run(context); err != nil {
+		return err
+	}
+
+	return nil
 }
