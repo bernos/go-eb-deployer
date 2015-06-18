@@ -2,6 +2,7 @@ package ebdeploy
 
 import (
 	"errors"
+	"github.com/aws/aws-sdk-go/aws"
 	"regexp"
 	"strings"
 )
@@ -10,11 +11,20 @@ var (
 	whiteSpaceToHyphenRegexp = regexp.MustCompile(`\s`)
 )
 
+type TargetEnvironment struct {
+	Name     string
+	CNAME    string
+	IsActive bool
+	Url      string
+}
+
 type DeploymentContext struct {
-	Configuration *Configuration
-	Environment   string
-	SourceBundle  string
-	Version       string
+	Configuration     *Configuration
+	Environment       string
+	SourceBundle      string
+	Version           string
+	TargetEnvironment *TargetEnvironment
+	AwsConfig         *aws.Config
 }
 
 func (d *DeploymentContext) Bucket() (string, error) {
@@ -60,6 +70,9 @@ func NewDeploymentContext(configuration *Configuration, environment string, sour
 		Environment:   environment,
 		SourceBundle:  sourceBundle,
 		Version:       version,
+		AwsConfig: &aws.Config{
+			Region: configuration.Region,
+		},
 	}
 
 	return d, nil
