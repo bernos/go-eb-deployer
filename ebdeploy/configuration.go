@@ -3,59 +3,48 @@ package ebdeploy
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"io/ioutil"
 )
 
-type Tag struct {
-	Key, Value string
-}
+type Tags []*elasticbeanstalk.Tag
 
-type Tags []Tag
-
-func (ts Tags) Contains(tag Tag) bool {
+func (ts Tags) Contains(tag *elasticbeanstalk.Tag) bool {
 	for _, t := range ts {
-		if t.Key == tag.Key {
+		if *t.Key == *tag.Key {
 			return true
 		}
 	}
 	return false
 }
 
-func (ts Tags) GetTag(key string) *Tag {
+func (ts Tags) GetTag(key string) *elasticbeanstalk.Tag {
 	for i, t := range ts {
-		if t.Key == key {
-			return &ts[i]
+		if *t.Key == key {
+			return ts[i]
 		}
 	}
 	return nil
 }
 
-type OptionSetting struct {
-	Namespace, OptionName, Value string
-}
+type OptionSettings []*elasticbeanstalk.ConfigurationOptionSetting
 
-type OptionSettings []OptionSetting
-
-func (os OptionSettings) Contains(optionSetting OptionSetting) bool {
+func (os OptionSettings) Contains(optionSetting *elasticbeanstalk.ConfigurationOptionSetting) bool {
 	for _, o := range os {
-		if o.Namespace == optionSetting.Namespace && o.OptionName == optionSetting.OptionName {
+		if *o.Namespace == *optionSetting.Namespace && *o.OptionName == *optionSetting.OptionName {
 			return true
 		}
 	}
 	return false
 }
 
-func (os OptionSettings) GetOptionSetting(namespace string, optionName string) *OptionSetting {
+func (os OptionSettings) GetOptionSetting(namespace string, optionName string) *elasticbeanstalk.ConfigurationOptionSetting {
 	for i, o := range os {
-		if o.Namespace == namespace && o.OptionName == optionName {
-			return &os[i]
+		if *o.Namespace == namespace && *o.OptionName == optionName {
+			return os[i]
 		}
 	}
 	return nil
-}
-
-type Tier struct {
-	Name, Type, Version string
 }
 
 type Output struct {
@@ -100,7 +89,7 @@ type Configuration struct {
 	Bucket            string
 	Tags              Tags
 	OptionSettings    OptionSettings
-	Tier              Tier
+	Tier              *elasticbeanstalk.EnvironmentTier
 	Resources         Resources
 	Environments      Environments
 }

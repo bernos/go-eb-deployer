@@ -1,8 +1,11 @@
 package services
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"log"
+	"time"
 )
 
 type EBService struct {
@@ -76,4 +79,72 @@ func (svc *EBService) CreateApplicationVersion(applicationName string, version s
 	}
 
 	return nil
+}
+
+func (svc *EBService) WaitForEnvironment(applicationName string, environmentName string, fnTest func(*elasticbeanstalk.EnvironmentDescription) bool) error {
+	ready := false
+
+	params := &elasticbeanstalk.DescribeEnvironmentsInput{
+		ApplicationName: aws.String(applicationName),
+		EnvironmentNames: []*string{
+			aws.String(environmentName),
+		},
+		IncludeDeleted: aws.Boolean(false),
+	}
+
+	for {
+		if resp, err := svc.client.DescribeEnvironments(params); err == nil {
+			if len(resp.Environments) != 1 {
+				return fmt.Errorf("While waiting for environment expected to find 1 environment, but found %d", len(resp.Environments))
+			}
+			ready = fnTest(resp.Environments[0])
+		} else {
+			return err
+		}
+
+		if ready {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func (svc *EBService) LogEvents(applicationName string, environmentName string, done <-chan struct{}) {
+
+	messages := make(chan *elasticbeanstalk.EventDescription)
+	since := time.Now().Add(time.Minute * -1)
+
+	go func() {
+
+		defer close(messages)
+
+		for {
+			params := &elasticbeanstalk.DescribeEventsInput{
+				ApplicationName: aws.String(applicationName),
+				EnvironmentName: aws.String(environmentName),
+				Severity:        aws.String("TRACE"),
+				StartTime:       aws.Time(since),
+			}
+
+			if resp, err := svc.client.DescribeEvents(params); err == nil {
+				for i := len(resp.Events) - 1; i >= 0; i-- {
+
+					select {
+					case messages <- resp.Events[i]:
+					case <-done:
+						return
+					}
+					since = resp.Events[i].EventDate.Add(time.Second)
+				}
+			}
+
+			time.Sleep(2 * time.Second)
+		}
+	}()
+
+	go func() {
+		for msg := range messages {
+			log.Println(msg.EventDate.String() + " - " + *msg.Message)
+		}
+	}()
 }

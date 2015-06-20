@@ -1,6 +1,6 @@
 {
-	"ApplicationName" : "My application",
-	"SolutionStackName" : "My solution stack",
+	"ApplicationName" : "golang eb deploy",
+	"SolutionStackName" : "64bit Amazon Linux 2015.03 v1.3.1 running Node.js",
 	"Region" : "ap-southeast-2",
 	"Strategy" : "blue-green",
 	"Tags" : [{
@@ -12,19 +12,14 @@
 		"Value" : "Value two"
 	}],
 	"OptionSettings" : [{
-		"Namespace" : "a:b:c",
-		"OptionName" : "OptionOne",
-		"Value" : "valueone"
-	},
-	{
-		"Namespace" : "e:y:w",
-		"OptionName" : "optiontwo",
-		"Value" : "foo"
+		"Namespace"  : "aws:autoscaling:launchconfiguration",
+		"OptionName" : "InstanceType",
+		"Value"      : "t2.small"
 	}],
 	"Tier" : {
-		"Name" : "Web",
-		"Type" : "WebType",
-		"Version" : "1"
+		"Name" : "WebServer",
+		"Type" : "Standard",
+		"Version" : ""
 	},
 	"Resources" : {
 		"TemplateFile" : "my-resources.json",
@@ -47,14 +42,9 @@
 			"Value" : "Value from dev"
 		}],
 		"OptionSettings" : [{
-			"Namespace" : "a:b:c",
-			"OptionName": "OptionOne",
-			"Value":"value for dev env"
-		},
-		{
-			"Namespace" : "d:e:f",
-			"OptionName" : "OptionOne",
-			"Value":"value"
+			"Namespace"  : "aws:autoscaling:launchconfiguration",
+			"OptionName" : "InstanceType",
+			"Value"      : "t2.micro"
 		}]
 	},
 	{

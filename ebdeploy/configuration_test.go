@@ -115,7 +115,7 @@ func TestNormalize(t *testing.T) {
 
 	if tag := env.Tags.GetTag("Tag Two"); tag != nil {
 		expected := "Value from dev"
-		actual := tag.Value
+		actual := *tag.Value
 		if actual != expected {
 			t.Errorf("Expected tag value %s but found %s", expected, actual)
 		}
@@ -125,7 +125,7 @@ func TestNormalize(t *testing.T) {
 
 	if os := env.OptionSettings.GetOptionSetting("a:b:c", "OptionOne"); os != nil {
 		expected := "value for dev env"
-		actual := os.Value
+		actual := *os.Value
 		if actual != expected {
 			t.Errorf("Expected option setting value %s, but found %s", expected, actual)
 		}

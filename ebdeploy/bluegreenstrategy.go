@@ -4,14 +4,16 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	//"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/aws/aws-sdk-go/service/s3"
 	//	"io"
+	//"fmt"
 	"github.com/bernos/go-eb-deployer/ebdeploy/services"
 	"log"
 	"regexp"
 	"strings"
+	//"time"
 )
 
 func NewBlueGreenStrategy() *DeploymentPipeline {
@@ -19,6 +21,7 @@ func NewBlueGreenStrategy() *DeploymentPipeline {
 	pipeline.AddStep(ensureBucketExists)
 	pipeline.AddStep(uploadVersion)
 	pipeline.AddStep(prepareTargetEnvironment)
+	pipeline.AddStep(deployApplicationVersion)
 
 	return pipeline
 }
@@ -58,8 +61,6 @@ func ensureBucketExists(ctx *DeploymentContext, next Continue) error {
 }
 
 func uploadVersion(ctx *DeploymentContext, next Continue) error {
-
-	// TODO: return error if the version already exists
 
 	var (
 		bucket        string
@@ -122,6 +123,16 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 			if err := ebService.TerminateEnvironment(*inactiveEnvironment.EnvironmentID); err != nil {
 				return err
 			}
+
+			done := make(chan struct{})
+			defer close(done)
+			ebService.LogEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
+
+			if err := ebService.WaitForEnvironment(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, func(e *elasticbeanstalk.EnvironmentDescription) bool {
+				return *e.Status == "Terminated"
+			}); err != nil {
+				return err
+			}
 		} else if activeEnvironment == nil && inactiveEnvironment == nil {
 			log.Println("Neither active nor inactive environments were found. Deploying directly to active environment")
 
@@ -134,11 +145,11 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 			activeSuffix := getSuffixFromEnvironmentName(*activeEnvironment.EnvironmentName)
 			inactiveSuffix := "a"
 
-			log.Printf("Active environment '%s' found. Deploying to inactive environment '%s'", activeSuffix, inactiveSuffix)
-
 			if activeSuffix == "a" {
 				inactiveSuffix = "b"
 			}
+
+			log.Printf("Active environment '%s' found. Deploying to inactive environment '%s'", activeSuffix, inactiveSuffix)
 
 			ctx.TargetEnvironment = &TargetEnvironment{
 				Name:     calculateEnvironmentName(ctx.Environment, inactiveSuffix),
@@ -153,12 +164,50 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 
 		log.Printf("active environment: %v", activeEnvironment)
 		log.Printf("inactive environment: %v", inactiveEnvironment)
-
 		log.Printf("Target environment: %v", ctx.TargetEnvironment)
 
 		return next()
 	} else {
 		return err
+	}
+}
+
+func deployApplicationVersion(ctx *DeploymentContext, next Continue) error {
+
+	log.Printf("Deploying version %s to environment %s", ctx.Version, ctx.TargetEnvironment.Name)
+
+	client := elasticbeanstalk.New(ctx.AwsConfig)
+	ebService := services.NewEBService(client)
+	params := &elasticbeanstalk.CreateEnvironmentInput{
+		ApplicationName:   aws.String(ctx.Configuration.ApplicationName),
+		EnvironmentName:   aws.String(ctx.TargetEnvironment.Name),
+		CNAMEPrefix:       aws.String(ctx.TargetEnvironment.CNAME),
+		OptionSettings:    []*elasticbeanstalk.ConfigurationOptionSetting(ctx.Configuration.OptionSettings),
+		Tags:              []*elasticbeanstalk.Tag(ctx.Configuration.Tags),
+		SolutionStackName: aws.String(ctx.Configuration.SolutionStackName),
+		Tier:              ctx.Configuration.Tier,
+		VersionLabel:      aws.String(ctx.Version),
+	}
+
+	if resp, err := client.CreateEnvironment(params); err != nil {
+		return err
+	} else {
+
+		done := make(chan struct{})
+		defer close(done)
+		ebService.LogEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
+
+		log.Printf("Deployed: %v", resp)
+		log.Printf("Waiting for environment health to go green")
+
+		if err := ebService.WaitForEnvironment(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, func(e *elasticbeanstalk.EnvironmentDescription) bool {
+			return *e.Health == "Green"
+		}); err != nil {
+			return err
+		} else {
+			log.Printf("Environment is green")
+			return next()
+		}
 	}
 }
 
