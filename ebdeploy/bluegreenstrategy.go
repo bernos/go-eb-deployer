@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"github.com/aws/aws-sdk-go/aws"
+	//"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/aws/aws-sdk-go/service/s3"
 	//	"io"
@@ -62,13 +62,20 @@ func uploadVersion(ctx *DeploymentContext, next Continue) error {
 	// TODO: return error if the version already exists
 
 	var (
-		bucket string
-		err    error
+		bucket        string
+		err           error
+		versionExists bool
 	)
 
 	s3Service := services.NewS3Service(s3.New(ctx.AwsConfig))
-	ebClient := elasticbeanstalk.New(ctx.AwsConfig)
+	ebService := services.NewEBService(elasticbeanstalk.New(ctx.AwsConfig))
 	key := ctx.Version + ".zip"
+
+	if versionExists, err = ebService.ApplicationVersionExists(ctx.Configuration.ApplicationName, ctx.Version); err != nil {
+		return err
+	} else if versionExists {
+		return errors.New("Version " + ctx.Version + " already exists")
+	}
 
 	if bucket, err = ctx.Bucket(); err != nil {
 		return err
@@ -80,7 +87,7 @@ func uploadVersion(ctx *DeploymentContext, next Continue) error {
 
 	log.Printf("Uploaded version %s", ctx.Version)
 
-	if err = createApplicationVersion(ebClient, ctx.Configuration.ApplicationName, ctx.Version, bucket, key); err != nil {
+	if err = ebService.CreateApplicationVersion(ctx.Configuration.ApplicationName, ctx.Version, bucket, key); err != nil {
 		return err
 	}
 
@@ -91,9 +98,9 @@ func uploadVersion(ctx *DeploymentContext, next Continue) error {
 
 func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 
-	svc := elasticbeanstalk.New(&aws.Config{Region: ctx.Configuration.Region})
+	ebService := services.NewEBService(elasticbeanstalk.New(ctx.AwsConfig))
 
-	if environments, err := getEnvironments(svc, ctx.Configuration.ApplicationName); err == nil {
+	if environments, err := ebService.GetEnvironments(ctx.Configuration.ApplicationName); err == nil {
 
 		log.Printf("Found %d existing environments", len(environments))
 
@@ -112,7 +119,7 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 				IsActive: false,
 			}
 
-			if err := terminateEnvironment(svc, *inactiveEnvironment.EnvironmentID); err != nil {
+			if err := ebService.TerminateEnvironment(*inactiveEnvironment.EnvironmentID); err != nil {
 				return err
 			}
 		} else if activeEnvironment == nil && inactiveEnvironment == nil {
@@ -152,19 +159,6 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 		return next()
 	} else {
 		return err
-	}
-}
-
-func getEnvironments(svc *elasticbeanstalk.ElasticBeanstalk, applicationName string) ([]*elasticbeanstalk.EnvironmentDescription, error) {
-	params := &elasticbeanstalk.DescribeEnvironmentsInput{
-		ApplicationName: aws.String(applicationName),
-		IncludeDeleted:  aws.Boolean(false),
-	}
-
-	if resp, err := svc.DescribeEnvironments(params); err == nil {
-		return resp.Environments, nil
-	} else {
-		return nil, err
 	}
 }
 
@@ -213,34 +207,4 @@ func getSuffixFromEnvironmentName(name string) string {
 	tokens := strings.Split(name, "-")
 
 	return tokens[len(tokens)-2]
-}
-
-func terminateEnvironment(svc *elasticbeanstalk.ElasticBeanstalk, environmentId string) error {
-	params := &elasticbeanstalk.TerminateEnvironmentInput{
-		EnvironmentID: &environmentId,
-	}
-
-	if _, err := svc.TerminateEnvironment(params); err != nil {
-		return err
-	}
-	// TODO: Wait for env to be terminated...
-	return nil
-}
-
-func createApplicationVersion(svc *elasticbeanstalk.ElasticBeanstalk, applicationName string, version string, bucket string, key string) error {
-	params := &elasticbeanstalk.CreateApplicationVersionInput{
-		ApplicationName:       aws.String(applicationName), // Required
-		VersionLabel:          aws.String(version),         // Required
-		AutoCreateApplication: aws.Boolean(true),
-		SourceBundle: &elasticbeanstalk.S3Location{
-			S3Bucket: aws.String(bucket),
-			S3Key:    aws.String(key),
-		},
-	}
-
-	if _, err := svc.CreateApplicationVersion(params); err != nil {
-		return err
-	}
-
-	return nil
 }
