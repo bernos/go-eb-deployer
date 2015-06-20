@@ -7,10 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	//	"io"
+	"github.com/bernos/go-eb-deployer/ebdeploy/services"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -32,13 +31,13 @@ func ensureBucketExists(ctx *DeploymentContext, next Continue) error {
 		err    error
 	)
 
-	s3Client := s3.New(ctx.AwsConfig)
+	s3Service := services.NewS3Service(s3.New(ctx.AwsConfig))
 
 	if bucket, err = ctx.Bucket(); err != nil {
 		return err
 	}
 
-	if exists, err = bucketExists(s3Client, bucket); err != nil {
+	if exists, err = s3Service.BucketExists(bucket); err != nil {
 		return err
 	}
 
@@ -49,7 +48,7 @@ func ensureBucketExists(ctx *DeploymentContext, next Continue) error {
 
 	log.Printf("Creating bucket %s", bucket)
 
-	if err = createBucket(s3Client, bucket); err != nil {
+	if err = s3Service.CreateBucket(bucket); err != nil {
 		return err
 	}
 
@@ -67,7 +66,7 @@ func uploadVersion(ctx *DeploymentContext, next Continue) error {
 		err    error
 	)
 
-	s3Client := s3.New(ctx.AwsConfig)
+	s3Service := services.NewS3Service(s3.New(ctx.AwsConfig))
 	ebClient := elasticbeanstalk.New(ctx.AwsConfig)
 	key := ctx.Version + ".zip"
 
@@ -75,7 +74,7 @@ func uploadVersion(ctx *DeploymentContext, next Continue) error {
 		return err
 	}
 
-	if err = uploadFile(s3Client, ctx.SourceBundle, bucket, key); err != nil {
+	if err = s3Service.UploadFile(ctx.SourceBundle, bucket, key); err != nil {
 		return err
 	}
 
@@ -154,24 +153,6 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 	} else {
 		return err
 	}
-}
-
-func bucketExists(svc *s3.S3, bucket string) (bool, error) {
-	if output, err := svc.ListBuckets(new(s3.ListBucketsInput)); err == nil {
-		for _, b := range output.Buckets {
-			if *b.Name == bucket {
-				return true, nil
-			}
-		}
-		return false, nil
-	} else {
-		return false, err
-	}
-}
-
-func createBucket(svc *s3.S3, bucket string) error {
-	_, err := svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucket})
-	return err
 }
 
 func getEnvironments(svc *elasticbeanstalk.ElasticBeanstalk, applicationName string) ([]*elasticbeanstalk.EnvironmentDescription, error) {
@@ -262,22 +243,4 @@ func createApplicationVersion(svc *elasticbeanstalk.ElasticBeanstalk, applicatio
 	}
 
 	return nil
-}
-
-func uploadFile(svc *s3.S3, file string, bucket string, key string) error {
-	if reader, err := os.Open(file); err == nil {
-		uploader := s3manager.NewUploader(&s3manager.UploadOptions{S3: svc})
-
-		input := &s3manager.UploadInput{
-			Bucket: &bucket,
-			Body:   reader,
-			Key:    &key,
-		}
-
-		_, uploadErr := uploader.Upload(input)
-
-		return uploadErr
-	} else {
-		return err
-	}
 }
