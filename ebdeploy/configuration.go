@@ -92,6 +92,7 @@ type Configuration struct {
 	Tier              *elasticbeanstalk.EnvironmentTier
 	Resources         Resources
 	Environments      Environments
+	SmokeTestUrl      string
 }
 
 func (c *Configuration) HasEnvironment(name string) bool {

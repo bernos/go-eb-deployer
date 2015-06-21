@@ -4,15 +4,19 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"net/http"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/aws/aws-sdk-go/service/s3"
 	//	"io"
 	//"fmt"
-	"github.com/bernos/go-eb-deployer/ebdeploy/services"
 	"log"
 	"regexp"
 	"strings"
+
+	"github.com/bernos/go-eb-deployer/ebdeploy/services"
 	//"time"
 )
 
@@ -22,6 +26,7 @@ func NewBlueGreenStrategy() *DeploymentPipeline {
 	pipeline.AddStep(uploadVersion)
 	pipeline.AddStep(prepareTargetEnvironment)
 	pipeline.AddStep(deployApplicationVersion)
+	pipeline.AddStep(runSmokeTest)
 
 	return pipeline
 }
@@ -209,6 +214,31 @@ func deployApplicationVersion(ctx *DeploymentContext, next Continue) error {
 			return next()
 		}
 	}
+}
+
+func runSmokeTest(ctx *DeploymentContext, next Continue) error {
+	if len(ctx.Configuration.SmokeTestUrl) > 0 {
+		url := strings.Replace(ctx.Configuration.SmokeTestUrl, "{url}", ctx.TargetEnvironment.Url, -1)
+
+		log.Printf("Running smoke test against %s", url)
+
+		for {
+
+			if resp, err := http.Get(url); err != nil {
+				return err
+			} else if resp.StatusCode == 200 {
+				log.Printf("Smoke test passed!")
+				break
+			}
+
+			time.Sleep(5 * time.Second)
+		}
+
+	} else {
+		log.Println("No SmokeTestUrl specified. Skipping smoke tests")
+	}
+
+	return next()
 }
 
 func cnamePredicate(cname string) func(*elasticbeanstalk.EnvironmentDescription) bool {

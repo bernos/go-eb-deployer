@@ -3,9 +3,11 @@
 	"SolutionStackName" : "64bit Amazon Linux 2015.03 v1.3.1 running Node.js",
 	"Region" : "ap-southeast-2",
 	"Strategy" : "blue-green",
+	"SmokeTestUrl" : "{url}/",
 	"Tags" : [{
 		"Key" : "Tag one",
 		"Value" : "Value one"
+
 	},
 	{
 		"Key" : "Tag Two",
