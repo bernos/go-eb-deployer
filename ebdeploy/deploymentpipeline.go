@@ -2,7 +2,10 @@ package ebdeploy
 
 import (
 	"errors"
-	"strings"
+)
+
+var (
+	strategies map[string]func() *DeploymentPipeline = make(map[string]func() *DeploymentPipeline)
 )
 
 type DeploymentStep func(*DeploymentContext, Continue) error
@@ -13,11 +16,17 @@ type DeploymentPipeline struct {
 	steps []DeploymentStep
 }
 
+func RegisterStrategy(strategy string, factory func() *DeploymentPipeline) {
+	strategies[strategy] = factory
+}
+
 func GetPipeline(strategy string) (*DeploymentPipeline, error) {
-	switch {
-	case strings.ToLower(strategy) == "blue-green":
-		return NewBlueGreenStrategy(), nil
+	s, ok := strategies[strategy]
+
+	if ok {
+		return s(), nil
 	}
+
 	return nil, errors.New("Unknown deployment strategy " + strategy)
 }
 
