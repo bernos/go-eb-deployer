@@ -27,7 +27,7 @@ func NewBlueGreenStrategy() *DeploymentPipeline {
 	pipeline.AddStep(prepareTargetEnvironment)
 	pipeline.AddStep(deployApplicationVersion)
 	pipeline.AddStep(runSmokeTest)
-
+	pipeline.AddStep(swapCnames)
 	return pipeline
 }
 
@@ -224,9 +224,7 @@ func runSmokeTest(ctx *DeploymentContext, next Continue) error {
 
 		for {
 
-			if resp, err := http.Get(url); err != nil {
-				return err
-			} else if resp.StatusCode == 200 {
+			if resp, err := http.Get(url); err == nil && resp.StatusCode == 200 {
 				log.Printf("Smoke test passed!")
 				break
 			}
@@ -239,6 +237,42 @@ func runSmokeTest(ctx *DeploymentContext, next Continue) error {
 	}
 
 	return next()
+}
+
+func swapCnames(ctx *DeploymentContext, next Continue) error {
+	log.Printf("Swapping cnames")
+
+	client := elasticbeanstalk.New(ctx.AwsConfig)
+	ebService := services.NewEBService(client)
+
+	if environments, err := ebService.GetEnvironments(ctx.Configuration.ApplicationName); err == nil {
+
+		activeCname := calculateCnamePrefix(ctx.Configuration.ApplicationName, ctx.Environment, true)
+		inactiveCname := calculateCnamePrefix(ctx.Configuration.ApplicationName, ctx.Environment, false)
+
+		activeEnvironment := findEnvironment(environments, cnamePredicate(activeCname))
+		inactiveEnvironment := findEnvironment(environments, cnamePredicate(inactiveCname))
+
+		if activeEnvironment != nil && inactiveEnvironment != nil {
+
+			params := &elasticbeanstalk.SwapEnvironmentCNAMEsInput{
+				DestinationEnvironmentID: aws.String(*activeEnvironment.EnvironmentID),
+				SourceEnvironmentID:      aws.String(*inactiveEnvironment.EnvironmentID),
+			}
+
+			if _, err := client.SwapEnvironmentCNAMEs(params); err != nil {
+				return err
+			}
+		} else if activeEnvironment == nil {
+			return errors.New("No active environment to swap cname with")
+		}
+
+		log.Printf("Successfully swapped cnames")
+
+		return next()
+	} else {
+		return err
+	}
 }
 
 func cnamePredicate(cname string) func(*elasticbeanstalk.EnvironmentDescription) bool {
