@@ -1,30 +1,31 @@
-package deployer
+package ebdeploy
 
 import (
 	"log"
 
-	"github.com/bernos/go-eb-deployer/ebdeploy"
+	"github.com/bernos/go-eb-deployer/ebdeploy/config"
+	"github.com/bernos/go-eb-deployer/ebdeploy/pipeline"
 	_ "github.com/bernos/go-eb-deployer/ebdeploy/strategies"
 )
 
 func Deploy(options Options) error {
 
 	var (
-		config  *ebdeploy.Configuration
-		context *ebdeploy.DeploymentContext
-		pipe    *ebdeploy.DeploymentPipeline
+		cfg     *config.Configuration
+		context *pipeline.DeploymentContext
+		pipe    *pipeline.DeploymentPipeline
 		err     error
 	)
 
-	if config, err = ebdeploy.LoadConfigFromFile(options.Config); err != nil {
+	if cfg, err = config.LoadConfigFromFile(options.Config); err != nil {
 		return err
 	}
 
-	if context, err = ebdeploy.NewDeploymentContext(config, options.Environment, options.Package, options.Version); err != nil {
+	if context, err = pipeline.NewDeploymentContext(cfg, options.Environment, options.Package, options.Version); err != nil {
 		return err
 	}
 
-	if pipe, err = ebdeploy.GetPipeline(config.Strategy); err != nil {
+	if pipe, err = pipeline.GetPipeline(cfg.Strategy); err != nil {
 		return err
 	}
 

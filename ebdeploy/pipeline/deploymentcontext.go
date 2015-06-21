@@ -1,8 +1,9 @@
-package ebdeploy
+package pipeline
 
 import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/bernos/go-eb-deployer/ebdeploy/config"
 	"regexp"
 	"strings"
 )
@@ -19,7 +20,7 @@ type TargetEnvironment struct {
 }
 
 type DeploymentContext struct {
-	Configuration     *Configuration
+	Configuration     *config.Configuration
 	Environment       string
 	SourceBundle      string
 	Version           string
@@ -47,7 +48,7 @@ func calculateBucketName(s string) string {
 	return strings.ToLower(whiteSpaceToHyphenRegexp.ReplaceAllString(s, "-") + "-packages")
 }
 
-func NewDeploymentContext(configuration *Configuration, environment string, sourceBundle string, version string) (*DeploymentContext, error) {
+func NewDeploymentContext(configuration *config.Configuration, environment string, sourceBundle string, version string) (*DeploymentContext, error) {
 
 	if configuration == nil {
 		return nil, errors.New("Configuration is required")

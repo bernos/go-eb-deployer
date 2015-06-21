@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/bernos/go-eb-deployer/ebdeploy/deployer"
+	"github.com/bernos/go-eb-deployer/ebdeploy"
 )
 
-func ReadOptions() deployer.Options {
-	options := deployer.Options{}
+func ReadOptions() ebdeploy.Options {
+	options := ebdeploy.Options{}
 
 	flag.StringVar(&options.Version, "version", "", "Version number")
 	flag.StringVar(&options.Environment, "environment", "", "Environment to deploy to")
@@ -21,7 +21,7 @@ func ReadOptions() deployer.Options {
 func main() {
 	options := ReadOptions()
 
-	if err := deployer.Deploy(options); err != nil {
+	if err := ebdeploy.Deploy(options); err != nil {
 		panic(err)
 	}
 }
