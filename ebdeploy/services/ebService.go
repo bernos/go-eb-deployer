@@ -89,13 +89,12 @@ func (svc *EBService) WaitForEnvironment(applicationName string, environmentName
 		EnvironmentNames: []*string{
 			aws.String(environmentName),
 		},
-		IncludeDeleted: aws.Boolean(false),
 	}
 
 	for {
 		if resp, err := svc.client.DescribeEnvironments(params); err == nil {
-			if len(resp.Environments) != 1 {
-				return fmt.Errorf("While waiting for environment expected to find 1 environment, but found %d", len(resp.Environments))
+			if len(resp.Environments) == 0 {
+				return fmt.Errorf("Could not wait for environment '%s' as it could not be found", environmentName)
 			}
 			ready = fnTest(resp.Environments[0])
 		} else {
