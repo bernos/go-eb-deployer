@@ -108,7 +108,7 @@ func (svc *EBService) WaitForEnvironment(applicationName string, environmentName
 	}
 }
 
-func (svc *EBService) LogEvents(applicationName string, environmentName string, done <-chan struct{}) {
+func (svc *EBService) LogEnvironmentEvents(applicationName string, environmentName string, done <-chan struct{}) {
 
 	messages := make(chan *elasticbeanstalk.EventDescription)
 	since := time.Now().Add(time.Minute * -1)

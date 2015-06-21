@@ -126,7 +126,7 @@ func prepareTargetEnvironment(ctx *DeploymentContext, next Continue) error {
 
 			done := make(chan struct{})
 			defer close(done)
-			ebService.LogEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
+			ebService.LogEnvironmentEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
 
 			if err := ebService.WaitForEnvironment(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, func(e *elasticbeanstalk.EnvironmentDescription) bool {
 				return *e.Status == "Terminated"
@@ -195,7 +195,7 @@ func deployApplicationVersion(ctx *DeploymentContext, next Continue) error {
 
 		done := make(chan struct{})
 		defer close(done)
-		ebService.LogEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
+		ebService.LogEnvironmentEvents(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, done)
 
 		log.Printf("Deployed: %v", resp)
 		log.Printf("Waiting for environment health to go green")
