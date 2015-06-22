@@ -3,8 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"io/ioutil"
+	"time"
+
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
 
 type Tags []*elasticbeanstalk.Tag
@@ -93,6 +95,7 @@ type Configuration struct {
 	Resources         Resources
 	Environments      Environments
 	SmokeTestUrl      string
+	SmokeTestTimeout  time.Duration
 }
 
 func (c *Configuration) HasEnvironment(name string) bool {

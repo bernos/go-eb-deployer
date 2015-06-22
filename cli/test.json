@@ -4,6 +4,7 @@
 	"Region" : "ap-southeast-2",
 	"Strategy" : "blue-green",
 	"SmokeTestUrl" : "{url}/",
+	"SmokeTestTimeout" : 10,
 	"Tags" : [{
 		"Key" : "Tag one",
 		"Value" : "Value one"
