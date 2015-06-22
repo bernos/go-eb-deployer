@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	//	"io"
 	//"fmt"
-	"github.com/bernos/go-eb-deployer/ebdeploy"
+	"github.com/bernos/go-eb-deployer/ebdeploy/pipeline"
 	"github.com/bernos/go-eb-deployer/ebdeploy/services"
 	"log"
 	"regexp"
@@ -21,11 +21,11 @@ import (
 )
 
 func init() {
-	ebdeploy.RegisterStrategy("blue-green", NewBlueGreenStrategy)
+	pipeline.RegisterStrategy("blue-green", NewBlueGreenStrategy)
 }
 
-func NewBlueGreenStrategy() *ebdeploy.DeploymentPipeline {
-	pipeline := new(ebdeploy.DeploymentPipeline)
+func NewBlueGreenStrategy() *pipeline.DeploymentPipeline {
+	pipeline := new(pipeline.DeploymentPipeline)
 	pipeline.AddStep(ensureBucketExists)
 	pipeline.AddStep(uploadVersion)
 	pipeline.AddStep(prepareTargetEnvironment)
@@ -35,7 +35,7 @@ func NewBlueGreenStrategy() *ebdeploy.DeploymentPipeline {
 	return pipeline
 }
 
-func ensureBucketExists(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func ensureBucketExists(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 
 	var (
 		bucket string
@@ -69,7 +69,7 @@ func ensureBucketExists(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue)
 	return next()
 }
 
-func uploadVersion(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func uploadVersion(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 
 	var (
 		bucket        string
@@ -106,7 +106,7 @@ func uploadVersion(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) erro
 	return next()
 }
 
-func prepareTargetEnvironment(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func prepareTargetEnvironment(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 
 	ebService := services.NewEBService(elasticbeanstalk.New(ctx.AwsConfig))
 
@@ -123,7 +123,7 @@ func prepareTargetEnvironment(ctx *ebdeploy.DeploymentContext, next ebdeploy.Con
 		if activeEnvironment != nil && inactiveEnvironment != nil {
 			log.Println("Both active and inactive environments were found. Inactive environment will be terminated.")
 
-			ctx.TargetEnvironment = &ebdeploy.TargetEnvironment{
+			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     *inactiveEnvironment.EnvironmentName,
 				CNAME:    inactiveCname,
 				IsActive: false,
@@ -133,7 +133,7 @@ func prepareTargetEnvironment(ctx *ebdeploy.DeploymentContext, next ebdeploy.Con
 		} else if activeEnvironment == nil && inactiveEnvironment == nil {
 			log.Println("Neither active nor inactive environments were found. Deploying directly to active environment")
 
-			ctx.TargetEnvironment = &ebdeploy.TargetEnvironment{
+			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     calculateEnvironmentName(ctx.Environment, "a"),
 				CNAME:    activeCname,
 				IsActive: true,
@@ -148,7 +148,7 @@ func prepareTargetEnvironment(ctx *ebdeploy.DeploymentContext, next ebdeploy.Con
 
 			log.Printf("Active environment '%s' found. Deploying to inactive environment '%s'", activeSuffix, inactiveSuffix)
 
-			ctx.TargetEnvironment = &ebdeploy.TargetEnvironment{
+			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     calculateEnvironmentName(ctx.Environment, inactiveSuffix),
 				CNAME:    inactiveCname,
 				IsActive: false,
@@ -185,7 +185,7 @@ func prepareTargetEnvironment(ctx *ebdeploy.DeploymentContext, next ebdeploy.Con
 	}
 }
 
-func deployApplicationVersion(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func deployApplicationVersion(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 
 	log.Printf("Deploying version %s to environment %s", ctx.Version, ctx.TargetEnvironment.Name)
 
@@ -220,7 +220,7 @@ func deployApplicationVersion(ctx *ebdeploy.DeploymentContext, next ebdeploy.Con
 	}
 }
 
-func runSmokeTest(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func runSmokeTest(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 	if len(ctx.Configuration.SmokeTestUrl) > 0 {
 		url := strings.Replace(ctx.Configuration.SmokeTestUrl, "{url}", ctx.TargetEnvironment.Url, -1)
 
@@ -243,7 +243,7 @@ func runSmokeTest(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error
 	return next()
 }
 
-func swapCnames(ctx *ebdeploy.DeploymentContext, next ebdeploy.Continue) error {
+func swapCnames(ctx *pipeline.DeploymentContext, next pipeline.Continue) error {
 	log.Printf("Swapping cnames")
 
 	client := elasticbeanstalk.New(ctx.AwsConfig)
