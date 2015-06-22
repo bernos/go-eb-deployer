@@ -1,4 +1,4 @@
-package ebdeploy
+package pipeline
 
 import (
 	"log"

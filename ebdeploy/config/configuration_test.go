@@ -1,4 +1,4 @@
-package ebdeploy
+package config
 
 import (
 	"testing"
