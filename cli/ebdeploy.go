@@ -1,19 +1,24 @@
 package main
 
 import (
-	"flag"
 	"github.com/bernos/go-eb-deployer/ebdeploy"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func ReadOptions() ebdeploy.Options {
 	options := ebdeploy.Options{}
+	version := kingpin.Flag("version", "Version label.").Short('v').String()
+	environment := kingpin.Flag("environment", "Environment to deploy to").Short('e').Required().String()
+	bundle := kingpin.Flag("package", "Package to deploy").Short('p').Required().String()
+	cfg := kingpin.Flag("config", "Deployment configuration json file").Short('c').Required().String()
 
-	flag.StringVar(&options.Version, "version", "", "Version number")
-	flag.StringVar(&options.Environment, "environment", "", "Environment to deploy to")
-	flag.StringVar(&options.Package, "package", "", "Package to deploy")
-	flag.StringVar(&options.Config, "config", "", "Deployment config file")
+	kingpin.Version("0.0.1")
+	kingpin.Parse()
 
-	flag.Parse()
+	options.Version = *version
+	options.Environment = *environment
+	options.Package = *bundle
+	options.Config = *cfg
 
 	return options
 }
