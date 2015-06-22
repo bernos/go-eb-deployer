@@ -1,7 +1,10 @@
 package main
 
 import (
+	"log"
+
 	"github.com/bernos/go-eb-deployer/ebdeploy"
+	"github.com/ttacon/chalk"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -27,6 +30,6 @@ func main() {
 	options := ReadOptions()
 
 	if err := ebdeploy.Deploy(options); err != nil {
-		panic(err)
+		log.Fatalf(chalk.Red.Color("ERROR: %s"), err)
 	}
 }

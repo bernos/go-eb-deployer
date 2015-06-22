@@ -24,7 +24,7 @@ func prepareTargetEnvironment(ctx *pipeline.DeploymentContext, next pipeline.Con
 		inactiveEnvironment := findEnvironment(environments, cnamePredicate(inactiveCname))
 
 		if activeEnvironment != nil && inactiveEnvironment != nil {
-			log.Println("Both active and inactive environments were found. Inactive environment will be terminated.")
+			log.Printf("Both active (%s) and inactive (%s) environments were found. Inactive environment will be terminated.", *activeEnvironment.EnvironmentName, *inactiveEnvironment.EnvironmentName)
 
 			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     *inactiveEnvironment.EnvironmentName,
@@ -34,7 +34,7 @@ func prepareTargetEnvironment(ctx *pipeline.DeploymentContext, next pipeline.Con
 
 			requiresTerminate = true
 		} else if activeEnvironment == nil && inactiveEnvironment == nil {
-			log.Println("Neither active nor inactive environments were found. Deploying directly to active environment")
+			log.Println("Neither active nor inactive environments were found. Deploying directly to a new active environment")
 
 			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     calculateEnvironmentName(ctx.Environment, "a"),
@@ -49,7 +49,7 @@ func prepareTargetEnvironment(ctx *pipeline.DeploymentContext, next pipeline.Con
 				inactiveSuffix = "b"
 			}
 
-			log.Printf("Active environment '%s' found. Deploying to inactive environment '%s'", activeSuffix, inactiveSuffix)
+			log.Printf("Active environment '%s' found (%s). Deploying to inactive environment '%s'", activeSuffix, *activeEnvironment.EnvironmentName, inactiveSuffix)
 
 			ctx.TargetEnvironment = &pipeline.TargetEnvironment{
 				Name:     calculateEnvironmentName(ctx.Environment, inactiveSuffix),
@@ -78,14 +78,8 @@ func prepareTargetEnvironment(ctx *pipeline.DeploymentContext, next pipeline.Con
 			}
 		}
 
-		log.Printf("active environment: %v", activeEnvironment)
-		log.Printf("inactive environment: %v", inactiveEnvironment)
-		log.Printf("Target environment: %v", ctx.TargetEnvironment)
-
 		return next()
 	} else {
 		return err
 	}
 }
-
-

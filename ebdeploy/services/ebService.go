@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/ttacon/chalk"
 	"log"
 	"time"
 )
@@ -143,7 +144,7 @@ func (svc *EBService) LogEnvironmentEvents(applicationName string, environmentNa
 
 	go func() {
 		for msg := range messages {
-			log.Println(msg.EventDate.String() + " - " + *msg.Message)
+			log.Println(chalk.Yellow.Color(*msg.Message))
 		}
 	}()
 }

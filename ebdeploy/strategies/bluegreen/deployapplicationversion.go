@@ -1,7 +1,6 @@
 package bluegreen
 
 import (
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/bernos/go-eb-deployer/ebdeploy/pipeline"
@@ -26,12 +25,11 @@ func deployApplicationVersion(ctx *pipeline.DeploymentContext, next pipeline.Con
 		VersionLabel:      aws.String(ctx.Version),
 	}
 
-	if resp, err := client.CreateEnvironment(params); err != nil {
+	if _, err := client.CreateEnvironment(params); err != nil {
 		return err
 	} else {
 
-		log.Printf("Deployed: %v", resp)
-		log.Printf("Waiting for environment health to go green")
+		log.Printf("Deployment completed. Waiting for environment health to go green")
 
 		if err := ebService.WaitForEnvironment(ctx.Configuration.ApplicationName, ctx.TargetEnvironment.Name, func(e *elasticbeanstalk.EnvironmentDescription) bool {
 			return *e.Health == "Green"
@@ -43,4 +41,3 @@ func deployApplicationVersion(ctx *pipeline.DeploymentContext, next pipeline.Con
 		}
 	}
 }
-
