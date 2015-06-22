@@ -1,11 +1,16 @@
 package pipeline
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/bernos/go-eb-deployer/ebdeploy/config"
+	"io"
+	"os"
 	"regexp"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/bernos/go-eb-deployer/ebdeploy/config"
 )
 
 var (
@@ -58,12 +63,18 @@ func NewDeploymentContext(configuration *config.Configuration, environment strin
 		return nil, errors.New("Invalid environment " + environment)
 	}
 
-	if len(version) == 0 {
-		return nil, errors.New("Invalid version number")
-	}
-
 	if len(sourceBundle) == 0 {
 		return nil, errors.New("Invalid source bundle")
+	}
+
+	if len(version) == 0 {
+		v, err := calculateVersionFromFileContents(sourceBundle)
+
+		if err != nil {
+			return nil, err
+		}
+
+		version = v
 	}
 
 	d := &DeploymentContext{
@@ -77,4 +88,20 @@ func NewDeploymentContext(configuration *config.Configuration, environment strin
 	}
 
 	return d, nil
+}
+
+func calculateVersionFromFileContents(file string) (string, error) {
+	hasher := md5.New()
+
+	if f, err := os.Open(file); err == nil {
+		defer f.Close()
+
+		if _, err := io.Copy(hasher, f); err == nil {
+			return hex.EncodeToString(hasher.Sum(nil)), nil
+		} else {
+			return "", err
+		}
+	} else {
+		return "", err
+	}
 }
