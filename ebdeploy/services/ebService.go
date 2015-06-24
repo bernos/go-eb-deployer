@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk/elasticbeanstalkiface"
 	"github.com/ttacon/chalk"
 	"log"
 	"time"
 )
 
 type EBService struct {
-	client *elasticbeanstalk.ElasticBeanstalk
+	client elasticbeanstalkiface.ElasticBeanstalkAPI
 }
 
-func NewEBService(client *elasticbeanstalk.ElasticBeanstalk) *EBService {
+func NewEBService(client elasticbeanstalkiface.ElasticBeanstalkAPI) *EBService {
 	return &EBService{
 		client: client,
 	}
