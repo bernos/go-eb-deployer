@@ -2,15 +2,16 @@ package services
 
 import (
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"os"
 )
 
 type S3Service struct {
-	client *s3.S3
+	client s3iface.S3API
 }
 
-func NewS3Service(client *s3.S3) *S3Service {
+func NewS3Service(client s3iface.S3API) *S3Service {
 	return &S3Service{
 		client: client,
 	}
@@ -36,7 +37,7 @@ func (svc *S3Service) CreateBucket(bucket string) error {
 
 func (svc *S3Service) UploadFile(file string, bucket string, key string) error {
 	if reader, err := os.Open(file); err == nil {
-		uploader := s3manager.NewUploader(&s3manager.UploadOptions{S3: svc.client})
+		uploader := s3manager.NewUploader(&s3manager.UploadOptions{S3: svc.client.(*s3.S3)})
 
 		input := &s3manager.UploadInput{
 			Bucket: &bucket,
