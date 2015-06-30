@@ -92,7 +92,7 @@ type Configuration struct {
 	Tags              Tags
 	OptionSettings    OptionSettings
 	Tier              *elasticbeanstalk.EnvironmentTier
-	Resources         Resources
+	Resources         *Resources
 	Environments      Environments
 	SmokeTestUrl      string
 	SmokeTestTimeout  time.Duration
