@@ -1,6 +1,8 @@
 package bluegreen
 
 import (
+	"log"
+
 	"github.com/bernos/go-eb-deployer/ebdeploy/pipeline"
 )
 
